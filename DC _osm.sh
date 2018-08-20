@@ -1,20 +1,33 @@
 #!/usr/bin/bash
 
-# osm file path
+# setting osm file path and the name of the database as first two arguments
 OSM_FILE=$1
-export PGDATABASE=$2
+PGDATABASE=$2
+STYLE=$3
 
 
-# clean up any existing db and files
-dropdb --if-exists "${PGDATABASE}"
+# create a database in postgres
 
+CONFIGDB="psql -U postgres -h localhost --set ON_ERROR_STOP=on --set AUTOCOMIT=off"
 
-createdb
-psql -Xqw -c 'CREATE EXTENSION postgis; CREATE EXTENSION hstore;'
+$CONFIGDB <<SQL
+create database "${PGDATABASE}";
+commit;
+SQL
 
-osm2pgsql -c -d "${PGDATABASE}" -U postgres -H localholst --hstore-all -S ./default.style "${PLANET_FILE}"
+RUN_ON_MYDB="psql -U postgres -h localhost -d "${PGDATABASE}" --set ON_ERROR_STOP=on --set AUTOCOMIT=off"
 
-RUN_ON_MYDB="psql -X -U postgres -h localholst -d ${PGDATABASE} --set ON_ERROR_STOP=on --set AUTOCOMIT=off"
+$RUN_ON_MYDB <<SQL
+create extension postgis;
+create extension hstore;
+commit;
+SQL
+
+# import data to the database using osm2pgsql
+
+osm2pgsql -c -d "${PGDATABASE}" -U postgres --hstore-all -S "${STYLE}" "${OSM_FILE}"
+
+# configure three tables in the database
 
 $RUN_ON_MYDB <<SQL
 alter table planet_osm_point add column long real;
