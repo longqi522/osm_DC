@@ -1,6 +1,7 @@
 #!/usr/bin/bash
 
-# setting osm file path and the name of the database as first two arguments
+# setting osm file path, the name of the database, and the path of the style file as three arguments
+
 OSM_FILE=$1
 PGDATABASE=$2
 STYLE=$3
