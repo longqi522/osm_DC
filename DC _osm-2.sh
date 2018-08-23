@@ -1,22 +1,24 @@
 #!/usr/bin/bash
 
-# setting osm file path, the name of the database, and the path of the style file as three arguments
+# setting osm map file path, the name of the database, osm2pgsql style file path, username for PostgreSQL and the cache size for osm2pgsql as the arguments 
+# default style location for Mac: /usr/local/share/osm2pgsql/default.style 
 
 OSM_FILE=$1
 PGDATABASE=$2
 STYLE=$3
-
+USER=$4
+OSM_CACHE=$5
 
 # create a database in postgres
 
-CONFIGDB="psql -U postgres -h localhost --set ON_ERROR_STOP=on --set AUTOCOMIT=off"
+CONFIGDB="psql -U "${USER}" --set ON_ERROR_STOP=on --set AUTOCOMIT=off"
 
 $CONFIGDB <<SQL
 create database "${PGDATABASE}";
 commit;
 SQL
 
-RUN_ON_MYDB="psql -U postgres -h localhost -d "${PGDATABASE}" --set ON_ERROR_STOP=on --set AUTOCOMIT=off"
+RUN_ON_MYDB="psql -U "${USER}" -d "${PGDATABASE}" --set ON_ERROR_STOP=on --set AUTOCOMIT=off"
 
 $RUN_ON_MYDB <<SQL
 create extension postgis;
@@ -26,7 +28,7 @@ SQL
 
 # import data to the database using osm2pgsql
 
-osm2pgsql -c -d "${PGDATABASE}" -U postgres --hstore-all -S "${STYLE}" "${OSM_FILE}"
+osm2pgsql -d "${PGDATABASE}" -U "${USER}" --hstore-all --cache "${OSM_CACHE}" -S "${STYLE}" "${OSM_FILE}"
 
 # configure three tables in the database
 
@@ -58,3 +60,4 @@ alter table planet_osm_polygon add column geom text;
 update planet_osm_polygon set geom=st_astext(way);
 commit;
 SQL
+
